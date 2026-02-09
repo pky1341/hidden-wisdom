@@ -54,11 +54,21 @@ export default function Products({ products, categories, selectedCategory }) {
                             href={`/product/${product.slug}`}
                             className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow group"
                         >
-                            <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] flex items-center justify-center p-8">
-                                <span className="text-[#F5EBDD] font-['Cinzel'] text-2xl text-center">
-                                    {product.title}
-                                </span>
-                            </div>
+                            {product.cover_image ? (
+                                <div className="aspect-[3/4] overflow-hidden">
+                                    <img 
+                                        src={`/storage/${product.cover_image}`} 
+                                        alt={product.title}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] flex items-center justify-center p-8">
+                                    <span className="text-[#F5EBDD] font-['Cinzel'] text-2xl text-center">
+                                        {product.title}
+                                    </span>
+                                </div>
+                            )}
                             <div className="p-6">
                                 <h3 className="font-['Cinzel'] text-xl text-[#5B3A29] mb-3 group-hover:text-[#C6A75E] transition-colors">
                                     {product.title}

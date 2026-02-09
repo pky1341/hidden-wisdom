@@ -29,7 +29,6 @@ export default function Index({ products }) {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orders</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
@@ -49,7 +48,6 @@ export default function Index({ products }) {
                                         {product.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-600">{product.orders_count || 0}</td>
                                 <td className="px-6 py-4 text-sm text-gray-600">
                                     {new Date(product.created_at).toLocaleDateString()}
                                 </td>

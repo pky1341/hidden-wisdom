@@ -2,27 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ProductService;
+use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProductsController extends Controller
 {
-    public function __construct(
-        private ProductService $productService
-    ) {}
-
     public function index(Request $request): Response
     {
-        $query = $this->productService->getActiveProducts();
+        $query = Product::where('is_active', true);
 
         if ($request->category) {
-            $query = $query->where('category_id', $request->category);
+            $query->where('category_id', $request->category);
         }
 
-        $products = $query->paginate(12);
-        $categories = \App\Models\Category::where('is_active', true)->get();
+        $products = $query->latest()->paginate(12);
+        $categories = Category::where('is_active', true)->get();
 
         return Inertia::render('Products', [
             'products' => $products,

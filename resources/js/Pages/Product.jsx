@@ -104,11 +104,21 @@ export default function Product({ product, razorpayKey }) {
                     <div className="relative">
                         <div className="absolute -inset-4 bg-[#C6A75E]/10 rounded-lg"></div>
                         <div className="relative bg-white p-8 rounded-lg shadow-xl">
-                            <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] rounded flex items-center justify-center">
-                                <span className="text-[#F5EBDD] font-['Cinzel'] text-3xl text-center px-8">
-                                    {product.title}
-                                </span>
-                            </div>
+                            {product.cover_image ? (
+                                <div className="aspect-[3/4] rounded overflow-hidden">
+                                    <img 
+                                        src={`/storage/${product.cover_image}`} 
+                                        alt={product.title}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] rounded flex items-center justify-center">
+                                    <span className="text-[#F5EBDD] font-['Cinzel'] text-3xl text-center px-8">
+                                        {product.title}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 

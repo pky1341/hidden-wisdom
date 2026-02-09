@@ -19,6 +19,12 @@ export default function SpiritualLayout({ children }) {
                                 Home
                             </Link>
                             <Link 
+                                href="/products" 
+                                className="font-['Lora'] text-[#5B3A29] hover:text-[#C6A75E] transition-colors"
+                            >
+                                Products
+                            </Link>
+                            <Link 
                                 href="/about" 
                                 className="font-['Lora'] text-[#5B3A29] hover:text-[#C6A75E] transition-colors"
                             >
@@ -56,6 +62,9 @@ export default function SpiritualLayout({ children }) {
                             <div className="flex flex-col gap-2">
                                 <Link href="/" className="text-[#F5EBDD]/80 hover:text-[#C6A75E] transition-colors text-sm">
                                     Home
+                                </Link>
+                                <Link href="/products" className="text-[#F5EBDD]/80 hover:text-[#C6A75E] transition-colors text-sm">
+                                    Products
                                 </Link>
                                 <Link href="/about" className="text-[#F5EBDD]/80 hover:text-[#C6A75E] transition-colors text-sm">
                                     About Us

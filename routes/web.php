@@ -7,6 +7,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
@@ -31,8 +32,13 @@ Route::prefix('api')->group(function () {
     Route::post('/orders/verify', [OrderController::class, 'verify']);
 });
 
-// Admin Routes
-Route::prefix('admin')->name('admin.')->group(function () {
+// Admin Login Routes (No Auth Required)
+Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login');
+Route::post('/admin/login', [AuthController::class, 'login']);
+Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
+
+// Admin Routes (Auth Required)
+Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     
     Route::resource('products', AdminProductController::class)->except(['show']);

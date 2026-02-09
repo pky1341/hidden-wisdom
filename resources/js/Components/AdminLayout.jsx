@@ -1,6 +1,12 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 
 export default function AdminLayout({ children }) {
+    const handleLogout = () => {
+        if (confirm('Are you sure you want to logout?')) {
+            router.post('/admin/logout');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Admin Header */}
@@ -18,9 +24,17 @@ export default function AdminLayout({ children }) {
                                 <Link href="/admin/customers" className="hover:text-[#C6A75E]">Customers</Link>
                             </nav>
                         </div>
-                        <Link href="/" className="text-sm hover:text-[#C6A75E]">
-                            ← View Website
-                        </Link>
+                        <div className="flex items-center gap-4">
+                            <Link href="/" className="text-sm hover:text-[#C6A75E]">
+                                ← View Website
+                            </Link>
+                            <button
+                                onClick={handleLogout}
+                                className="text-sm bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
+                            >
+                                Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
