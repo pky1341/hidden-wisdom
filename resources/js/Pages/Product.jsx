@@ -1,15 +1,24 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SpiritualLayout from '../Components/SpiritualLayout';
+import Alert from '../Components/Alert';
 import axios from 'axios';
 
 export default function Product({ product, razorpayKey }) {
     const [processing, setProcessing] = useState(false);
+    const [alert, setAlert] = useState(null);
     const { data, setData, errors } = useForm({
         name: '',
         email: '',
         phone: '',
     });
+
+    useEffect(() => {
+        if (alert) {
+            const timer = setTimeout(() => setAlert(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [alert]);
 
     const loadRazorpayScript = () => {
         return new Promise((resolve) => {
@@ -25,15 +34,16 @@ export default function Product({ product, razorpayKey }) {
         e.preventDefault();
         
         if (!data.name || !data.email) {
-            alert('Please fill in all required fields');
+            setAlert({ type: 'error', message: 'Please fill in all required fields (Name and Email)' });
             return;
         }
 
         setProcessing(true);
+        setAlert({ type: 'info', message: 'Loading payment gateway...' });
 
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) {
-            alert('Razorpay SDK failed to load');
+            setAlert({ type: 'error', message: 'Payment gateway failed to load. Please check your internet connection and try again.' });
             setProcessing(false);
             return;
         }
@@ -46,6 +56,8 @@ export default function Product({ product, razorpayKey }) {
                 phone: data.phone,
             });
 
+            setAlert(null);
+
             const options = {
                 key: razorpayKey,
                 amount: orderResponse.data.amount,
@@ -54,6 +66,7 @@ export default function Product({ product, razorpayKey }) {
                 description: product.title,
                 order_id: orderResponse.data.order_id,
                 handler: async function (response) {
+                    setAlert({ type: 'info', message: 'Verifying payment... Please wait.' });
                     try {
                         const verifyResponse = await axios.post('/api/orders/verify', {
                             razorpay_order_id: response.razorpay_order_id,
@@ -62,13 +75,13 @@ export default function Product({ product, razorpayKey }) {
                         });
 
                         if (verifyResponse.data.success) {
-                            alert('Payment successful! Check your email for the ebook.');
-                            window.location.href = '/';
+                            setAlert({ type: 'success', message: '✓ Payment successful! Your ebook has been sent to ' + data.email + '. Please check your inbox.' });
+                            setTimeout(() => window.location.href = '/', 3000);
                         } else {
-                            alert('Payment verification failed');
+                            setAlert({ type: 'error', message: 'Payment verification failed. Please contact support with your payment ID.' });
                         }
                     } catch (error) {
-                        alert('Payment verification failed');
+                        setAlert({ type: 'error', message: 'Payment verification failed. Your payment may have been processed. Please contact support.' });
                     }
                     setProcessing(false);
                 },
@@ -80,16 +93,22 @@ export default function Product({ product, razorpayKey }) {
                 theme: {
                     color: '#5B3A29',
                 },
+                modal: {
+                    ondismiss: function() {
+                        setAlert({ type: 'warning', message: 'Payment cancelled. You can try again when ready.' });
+                        setProcessing(false);
+                    }
+                }
             };
 
             const razorpay = new window.Razorpay(options);
-            razorpay.on('payment.failed', function () {
-                alert('Payment failed. Please try again.');
+            razorpay.on('payment.failed', function (response) {
+                setAlert({ type: 'error', message: 'Payment failed: ' + response.error.description + '. Please try again.' });
                 setProcessing(false);
             });
             razorpay.open();
         } catch (error) {
-            alert('Failed to create order. Please try again.');
+            setAlert({ type: 'error', message: 'Failed to create order. Please try again or contact support if the issue persists.' });
             setProcessing(false);
         }
     };
@@ -99,6 +118,12 @@ export default function Product({ product, razorpayKey }) {
             <Head title={product.title} />
 
             <div className="max-w-6xl mx-auto px-4 py-16">
+                {alert && (
+                    <div className="mb-6">
+                        <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+                    </div>
+                )}
+
                 <div className="grid md:grid-cols-2 gap-12">
                     {/* Product Image */}
                     <div className="relative">

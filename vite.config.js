@@ -7,7 +7,6 @@ export default defineConfig({
         laravel({
             input: 'resources/js/app.jsx',
             refresh: true,
-            hotFile: 'storage/vite.hot',
         }),
         react(),
     ],

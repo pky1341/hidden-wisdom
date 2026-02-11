@@ -12,8 +12,8 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CategoryController;
-use Illuminate\Support\Facades\Route;
 
 // Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -49,4 +49,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customers/{email}', [CustomerController::class, 'show'])->name('customers.show');
+    
+    Route::get('/contacts', [ContactSubmissionController::class, 'index'])->name('contacts.index');
+    Route::delete('/contacts/{submission}', [ContactSubmissionController::class, 'destroy'])->name('contacts.destroy');
 });

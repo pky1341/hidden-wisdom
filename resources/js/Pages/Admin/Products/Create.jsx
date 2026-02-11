@@ -1,8 +1,10 @@
 import { Head, useForm, Link } from '@inertiajs/react';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 import AdminLayout from '../../../Components/AdminLayout';
 
 export default function Create() {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
         title: '',
         description: '',
         preview_content: '',
@@ -13,23 +15,33 @@ export default function Create() {
         is_active: true,
     });
 
+    useEffect(() => {
+        if (recentlySuccessful) {
+            toast.success('Product created successfully!');
+        }
+    }, [recentlySuccessful]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        post('/admin/products');
+        post('/admin/products', {
+            onError: () => {
+                toast.error('Failed to create product. Please check the form.');
+            }
+        });
     };
 
     return (
         <AdminLayout>
             <Head title="Add New Product" />
 
-            <div className="mb-8">
-                <Link href="/admin/products" className="text-[#5B3A29] hover:text-[#C6A75E]">
+            <div className="mb-6 sm:mb-8">
+                <Link href="/admin/products" className="text-[#5B3A29] hover:text-[#C6A75E] text-sm sm:text-base">
                     ← Back to Products
                 </Link>
-                <h1 className="text-3xl font-bold text-gray-800 mt-4">Add New Product</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mt-3 sm:mt-4">Add New Product</h1>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-8 max-w-3xl">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-8 max-w-3xl">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -72,7 +84,7 @@ export default function Create() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Price *
@@ -142,17 +154,17 @@ export default function Create() {
                         </label>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                         <button
                             type="submit"
                             disabled={processing}
-                            className="bg-[#5B3A29] text-white px-8 py-3 rounded-lg hover:bg-[#C6A75E] transition-colors disabled:opacity-50"
+                            className="bg-[#5B3A29] text-white px-8 py-3 rounded-lg hover:bg-[#C6A75E] transition-colors disabled:opacity-50 w-full sm:w-auto"
                         >
                             {processing ? 'Creating...' : 'Create Product'}
                         </button>
                         <Link
                             href="/admin/products"
-                            className="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+                            className="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-300 transition-colors text-center w-full sm:w-auto"
                         >
                             Cancel
                         </Link>

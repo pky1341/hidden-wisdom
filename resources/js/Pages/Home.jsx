@@ -49,15 +49,20 @@ export default function Home({ featuredProduct }) {
                         </div>
                         
                         <div className="grid md:grid-cols-2 gap-12 items-center">
-                            <div className="relative">
-                                <div className="absolute -inset-4 bg-[#C6A75E]/10 rounded-lg"></div>
-                                <div className="relative bg-white p-8 rounded-lg shadow-lg">
-                                    <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] rounded flex items-center justify-center">
-                                        <span className="text-[#F5EBDD] font-['Cinzel'] text-2xl">
+                            <div>
+                                {featuredProduct.cover_image ? (
+                                    <img 
+                                        src={`/storage/${featuredProduct.cover_image}`}
+                                        alt={featuredProduct.title}
+                                        className="w-full aspect-[3/4] object-cover rounded-lg shadow-xl"
+                                    />
+                                ) : (
+                                    <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] rounded-lg shadow-xl flex items-center justify-center p-8">
+                                        <span className="text-[#F5EBDD] font-['Cinzel'] text-3xl text-center">
                                             {featuredProduct.title}
                                         </span>
                                     </div>
-                                </div>
+                                )}
                             </div>
                             
                             <div>

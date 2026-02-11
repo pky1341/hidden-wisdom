@@ -1,39 +1,69 @@
-import { Head, useForm } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 import SpiritualLayout from '../Components/SpiritualLayout';
-import toast, { Toaster } from 'react-hot-toast';
+import Alert from '../Components/Alert';
 
 export default function Contact() {
-    const { data, setData, post, processing, errors, reset, recentlySuccessful } = useForm({
+    const { flash = {} } = usePage().props;
+    const [alert, setAlert] = useState(() => {
+        if (flash?.success) {
+            return { type: 'success', message: flash.success };
+        }
+
+        if (flash?.error) {
+            return { type: 'error', message: flash.error };
+        }
+
+        return null;
+    });
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
         email: '',
         message: '',
     });
 
     useEffect(() => {
-        if (recentlySuccessful) {
-            // Already handled in onSuccess callback
+        if (flash?.success) {
+            setAlert({ type: 'success', message: flash.success });
+            return;
         }
-    }, [recentlySuccessful]);
+
+        if (flash?.error) {
+            setAlert({ type: 'error', message: flash.error });
+        }
+    }, [flash?.success, flash?.error]);
+
+    useEffect(() => {
+        if (!alert) {
+            return undefined;
+        }
+
+        const timer = setTimeout(() => setAlert(null), 5000);
+        return () => clearTimeout(timer);
+    }, [alert]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        clearErrors();
+        setAlert(null);
+
         post('/contact', {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
-                toast.success('Thank you! Your message has been sent successfully.');
             },
             onError: () => {
-                toast.error('Failed to send message. Please check the form and try again.');
-            }
+                setAlert({
+                    type: 'error',
+                    message: 'Please correct the highlighted fields and try again.',
+                });
+            },
         });
     };
 
     return (
         <SpiritualLayout>
             <Head title="Contact Us" />
-            <Toaster position="top-right" />
 
             <div className="max-w-3xl mx-auto px-4 py-16">
                 <div className="text-center mb-12">
@@ -45,6 +75,14 @@ export default function Contact() {
                         We welcome your questions, thoughts, and spiritual inquiries
                     </p>
                 </div>
+
+                {alert && (
+                    <Alert
+                        type={alert.type}
+                        message={alert.message}
+                        onClose={() => setAlert(null)}
+                    />
+                )}
 
                 <div className="bg-white p-8 md:p-12 rounded-lg shadow-xl mb-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
