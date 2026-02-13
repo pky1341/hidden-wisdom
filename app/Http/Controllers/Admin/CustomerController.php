@@ -4,17 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CustomerController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(): Response
     {
-        $customers = Order::selectRaw('customer_email, customer_name, COUNT(*) as total_orders, SUM(amount) as total_spent')
-            ->where('status', 'paid')
-            ->groupBy('customer_email', 'customer_name')
+        $emailColumn = Order::emailColumn();
+        $nameColumn = Order::nameColumn();
+
+        $customers = Order::selectRaw("{$emailColumn} as user_email, MAX({$nameColumn}) as user_name, COUNT(*) as total_orders, SUM(amount) as total_spent")
+            ->paid()
+            ->groupBy($emailColumn)
             ->orderByDesc('total_spent')
             ->paginate(20);
 
@@ -25,15 +27,17 @@ class CustomerController extends Controller
 
     public function show(string $email): Response
     {
-        $orders = Order::with('product')
-            ->where('customer_email', $email)
+        $emailColumn = Order::emailColumn();
+
+        $orders = Order::with('product:id,title,slug')
+            ->where($emailColumn, $email)
             ->latest()
             ->get();
 
         $stats = [
             'total_orders' => $orders->count(),
-            'total_spent' => $orders->where('status', 'paid')->sum('amount'),
-            'customer_name' => $orders->first()->customer_name ?? 'Unknown',
+            'total_spent' => (float) $orders->where('payment_status', 'paid')->sum('amount'),
+            'customer_name' => $orders->first()->user_name ?? 'Customer',
         ];
 
         return Inertia::render('Admin/Customers/Show', [

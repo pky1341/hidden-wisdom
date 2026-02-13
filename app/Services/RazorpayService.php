@@ -2,55 +2,73 @@
 
 namespace App\Services;
 
-use App\Models\Order;
-use App\Models\Product;
-use Razorpay\Api\Api;
+use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Support\Arr;
+use RuntimeException;
 
 class RazorpayService
 {
-    private Api $api;
+    private const BASE_URL = 'https://api.razorpay.com/v1';
 
-    public function __construct()
+    public function __construct(
+        private HttpFactory $http
+    ) {}
+
+    public function createOrder(string $receipt, int $amountInPaise, string $currency = 'INR'): array
     {
-        $this->api = new Api(
-            config('services.razorpay.key'),
-            config('services.razorpay.secret')
-        );
-    }
+        $response = $this->http
+            ->withBasicAuth($this->getKey(), $this->getSecret())
+            ->acceptJson()
+            ->post(self::BASE_URL . '/orders', [
+                'amount' => $amountInPaise,
+                'currency' => strtoupper($currency),
+                'receipt' => $receipt,
+                'payment_capture' => 1,
+            ])
+            ->throw();
 
-    public function createOrder(Product $product, array $customerData): Order
-    {
-        $razorpayOrder = $this->api->order->create([
-            'amount' => $product->price * 100, // Amount in paise
-            'currency' => $product->currency,
-            'receipt' => 'order_' . time(),
-        ]);
-
-        return Order::create([
-            'product_id' => $product->id,
-            'customer_name' => $customerData['name'],
-            'customer_email' => $customerData['email'],
-            'customer_phone' => $customerData['phone'] ?? null,
-            'amount' => $product->price,
-            'currency' => $product->currency,
-            'razorpay_order_id' => $razorpayOrder['id'],
-            'status' => 'pending',
+        return Arr::only($response->json(), [
+            'id',
+            'entity',
+            'amount',
+            'currency',
+            'receipt',
+            'status',
         ]);
     }
 
     public function verifyPayment(string $orderId, string $paymentId, string $signature): bool
     {
-        $attributes = [
-            'razorpay_order_id' => $orderId,
-            'razorpay_payment_id' => $paymentId,
-            'razorpay_signature' => $signature,
-        ];
+        $payload = $orderId . '|' . $paymentId;
+        $expectedSignature = hash_hmac('sha256', $payload, $this->getSecret());
 
-        try {
-            $this->api->utility->verifyPaymentSignature($attributes);
-            return true;
-        } catch (\Exception $e) {
-            return false;
+        return hash_equals($expectedSignature, $signature);
+    }
+
+    public function getPublicKey(): string
+    {
+        return $this->getKey();
+    }
+
+    private function getKey(): string
+    {
+        $key = (string) config('services.razorpay.key');
+
+        if ($key === '') {
+            throw new RuntimeException('Razorpay key is not configured.');
         }
+
+        return $key;
+    }
+
+    private function getSecret(): string
+    {
+        $secret = (string) config('services.razorpay.secret');
+
+        if ($secret === '') {
+            throw new RuntimeException('Razorpay secret is not configured.');
+        }
+
+        return $secret;
     }
 }

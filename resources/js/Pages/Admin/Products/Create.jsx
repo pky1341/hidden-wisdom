@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../Components/AdminLayout';
@@ -9,24 +9,23 @@ export default function Create() {
         description: '',
         preview_content: '',
         price: '',
+        discount_price: '',
         currency: 'INR',
         pdf: null,
-        cover_image: null,
-        is_active: true,
+        preview_image: null,
+        status: 'active',
     });
 
     useEffect(() => {
         if (recentlySuccessful) {
-            toast.success('Product created successfully!');
+            toast.success('Product created successfully.');
         }
     }, [recentlySuccessful]);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const handleSubmit = (event) => {
+        event.preventDefault();
         post('/admin/products', {
-            onError: () => {
-                toast.error('Failed to create product. Please check the form.');
-            }
+            onError: () => toast.error('Please fix validation errors.'),
         });
     };
 
@@ -34,141 +33,128 @@ export default function Create() {
         <AdminLayout>
             <Head title="Add New Product" />
 
-            <div className="mb-6 sm:mb-8">
-                <Link href="/admin/products" className="text-[#5B3A29] hover:text-[#C6A75E] text-sm sm:text-base">
-                    ← Back to Products
+            <div className="mb-8">
+                <Link href="/admin/products" className="text-[#5B3A29] hover:text-[#C6A75E]">
+                    ← Back to products
                 </Link>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mt-3 sm:mt-4">Add New Product</h1>
+                <h1 className="mt-3 text-3xl font-bold text-gray-800">Add New Product</h1>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-4 sm:p-8 max-w-3xl">
+            <div className="max-w-3xl rounded-lg bg-white p-8 shadow">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Product Title *
-                        </label>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">Title *</label>
                         <input
                             type="text"
                             value={data.title}
-                            onChange={(e) => setData('title', e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                            required
+                            onChange={(event) => setData('title', event.target.value)}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
                         />
-                        {errors.title && <div className="text-red-600 text-sm mt-1">{errors.title}</div>}
+                        {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Description *
-                        </label>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">Description *</label>
                         <textarea
                             value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
-                            rows="5"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                            required
+                            onChange={(event) => setData('description', event.target.value)}
+                            rows="4"
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
                         />
-                        {errors.description && <div className="text-red-600 text-sm mt-1">{errors.description}</div>}
+                        {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Preview Content (Optional)
-                        </label>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">Preview Excerpt</label>
                         <textarea
                             value={data.preview_content}
-                            onChange={(e) => setData('preview_content', e.target.value)}
+                            onChange={(event) => setData('preview_content', event.target.value)}
                             rows="3"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                            placeholder="A preview quote or excerpt from the ebook..."
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Price *
-                            </label>
+                            <label className="mb-2 block text-sm font-medium text-gray-700">Original Price *</label>
                             <input
                                 type="number"
+                                min="1"
                                 step="0.01"
                                 value={data.price}
-                                onChange={(e) => setData('price', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                                required
+                                onChange={(event) => setData('price', event.target.value)}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
                             />
-                            {errors.price && <div className="text-red-600 text-sm mt-1">{errors.price}</div>}
+                            {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
                         </div>
-
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Currency
-                            </label>
-                            <select
+                            <label className="mb-2 block text-sm font-medium text-gray-700">Discount Price</label>
+                            <input
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                value={data.discount_price}
+                                onChange={(event) => setData('discount_price', event.target.value)}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
+                            />
+                            {errors.discount_price && <p className="mt-1 text-sm text-red-600">{errors.discount_price}</p>}
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-700">Currency</label>
+                            <input
+                                type="text"
+                                maxLength={3}
                                 value={data.currency}
-                                onChange={(e) => setData('currency', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                            >
-                                <option value="INR">INR (₹)</option>
-                                <option value="USD">USD ($)</option>
-                                <option value="EUR">EUR (€)</option>
-                            </select>
+                                onChange={(event) => setData('currency', event.target.value.toUpperCase())}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
+                            />
+                            {errors.currency && <p className="mt-1 text-sm text-red-600">{errors.currency}</p>}
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-700">PDF File * (max 50MB)</label>
+                            <input
+                                type="file"
+                                accept="application/pdf"
+                                onChange={(event) => setData('pdf', event.target.files[0])}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                            />
+                            {errors.pdf && <p className="mt-1 text-sm text-red-600">{errors.pdf}</p>}
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-700">Preview Image</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) => setData('preview_image', event.target.files[0])}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                            />
+                            {errors.preview_image && <p className="mt-1 text-sm text-red-600">{errors.preview_image}</p>}
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            PDF File * (Max 50MB)
-                        </label>
-                        <input
-                            type="file"
-                            accept=".pdf"
-                            onChange={(e) => setData('pdf', e.target.files[0])}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                            required
-                        />
-                        {errors.pdf && <div className="text-red-600 text-sm mt-1">{errors.pdf}</div>}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Cover Image (Optional, Max 5MB)
-                        </label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setData('cover_image', e.target.files[0])}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B3A29] focus:border-transparent"
-                        />
-                    </div>
-
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            checked={data.is_active}
-                            onChange={(e) => setData('is_active', e.target.checked)}
-                            className="w-4 h-4 text-[#5B3A29] border-gray-300 rounded focus:ring-[#5B3A29]"
-                        />
-                        <label className="ml-2 text-sm text-gray-700">
-                            Active (visible on website)
-                        </label>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="bg-[#5B3A29] text-white px-8 py-3 rounded-lg hover:bg-[#C6A75E] transition-colors disabled:opacity-50 w-full sm:w-auto"
+                        <label className="mb-2 block text-sm font-medium text-gray-700">Status *</label>
+                        <select
+                            value={data.status}
+                            onChange={(event) => setData('status', event.target.value)}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#5B3A29]"
                         >
-                            {processing ? 'Creating...' : 'Create Product'}
-                        </button>
-                        <Link
-                            href="/admin/products"
-                            className="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-300 transition-colors text-center w-full sm:w-auto"
-                        >
-                            Cancel
-                        </Link>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        {errors.status && <p className="mt-1 text-sm text-red-600">{errors.status}</p>}
                     </div>
+
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="rounded-lg bg-[#5B3A29] px-8 py-3 text-white transition hover:bg-[#C6A75E] disabled:opacity-50"
+                    >
+                        {processing ? 'Creating...' : 'Create Product'}
+                    </button>
                 </form>
             </div>
         </AdminLayout>

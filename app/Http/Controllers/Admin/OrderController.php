@@ -12,31 +12,34 @@ class OrderController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Order::with('product');
+        $query = Order::query()->with('product:id,title,slug');
 
-        if ($request->status) {
-            $query->where('status', $request->status);
+        if ($request->filled('payment_status')) {
+            $query->wherePaymentStatus($request->string('payment_status')->toString());
         }
 
-        if ($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('customer_email', 'like', '%' . $request->search . '%')
-                  ->orWhere('customer_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('razorpay_order_id', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+
+            $query->where(function ($builder) use ($search): void {
+                $builder->where(Order::emailColumn(), 'like', '%' . $search . '%')
+                    ->orWhere(Order::nameColumn(), 'like', '%' . $search . '%')
+                    ->orWhere('razorpay_order_id', 'like', '%' . $search . '%')
+                    ->orWhere('razorpay_payment_id', 'like', '%' . $search . '%');
             });
         }
 
-        $orders = $query->latest()->paginate(20);
+        $orders = $query->latest()->paginate(20)->withQueryString();
 
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $orders,
-            'filters' => $request->only(['status', 'search']),
+            'filters' => $request->only(['payment_status', 'search']),
         ]);
     }
 
     public function show(Order $order): Response
     {
-        $order->load('product');
+        $order->load(['product', 'download']);
 
         return Inertia::render('Admin/Orders/Show', [
             'order' => $order,

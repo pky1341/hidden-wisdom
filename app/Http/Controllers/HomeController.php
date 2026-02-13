@@ -14,10 +14,8 @@ class HomeController extends Controller
 
     public function index(): Response
     {
-        $featuredProduct = $this->productService->getFeaturedProduct();
-
         return Inertia::render('Home', [
-            'featuredProduct' => $featuredProduct,
+            'featuredProduct' => $this->productService->getFeaturedProduct(),
         ]);
     }
 }

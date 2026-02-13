@@ -10,8 +10,6 @@ class AdminAuth
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $adminPassword = env('ADMIN_PASSWORD', 'admin123');
-        
         if (!session()->has('admin_authenticated')) {
             if ($request->is('admin/login')) {
                 return $next($request);

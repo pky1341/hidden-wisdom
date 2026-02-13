@@ -1,114 +1,136 @@
-import { Head, useForm } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { Head, useForm, Link } from '@inertiajs/react';
+import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import SpiritualLayout from '../Components/SpiritualLayout';
 import Alert from '../Components/Alert';
-import axios from 'axios';
+
+const CHECKOUT_SCRIPT = 'https://checkout.razorpay.com/v1/checkout.js';
 
 export default function Product({ product, razorpayKey }) {
     const [processing, setProcessing] = useState(false);
     const [alert, setAlert] = useState(null);
+
     const { data, setData, errors } = useForm({
-        name: '',
-        email: '',
-        phone: '',
+        user_name: '',
+        user_email: '',
+        user_phone: '',
     });
 
+    const isDiscounted = useMemo(() => product.has_discount, [product.has_discount]);
+
     useEffect(() => {
-        if (alert) {
-            const timer = setTimeout(() => setAlert(null), 5000);
-            return () => clearTimeout(timer);
+        if (!alert) {
+            return undefined;
         }
+
+        const timer = setTimeout(() => setAlert(null), 6000);
+        return () => clearTimeout(timer);
     }, [alert]);
 
     const loadRazorpayScript = () => {
+        if (window.Razorpay) {
+            return Promise.resolve(true);
+        }
+
         return new Promise((resolve) => {
             const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.src = CHECKOUT_SCRIPT;
+            script.async = true;
             script.onload = () => resolve(true);
             script.onerror = () => resolve(false);
             document.body.appendChild(script);
         });
     };
 
-    const handlePurchase = async (e) => {
-        e.preventDefault();
-        
-        if (!data.name || !data.email) {
-            setAlert({ type: 'error', message: 'Please fill in all required fields (Name and Email)' });
+    const handlePurchase = async (event) => {
+        event.preventDefault();
+
+        if (!data.user_email) {
+            setAlert({ type: 'error', message: 'Email is required to deliver your ebook.' });
             return;
         }
 
         setProcessing(true);
-        setAlert({ type: 'info', message: 'Loading payment gateway...' });
+        setAlert({ type: 'info', message: 'Preparing secure checkout...' });
 
         const scriptLoaded = await loadRazorpayScript();
+
         if (!scriptLoaded) {
-            setAlert({ type: 'error', message: 'Payment gateway failed to load. Please check your internet connection and try again.' });
+            setAlert({ type: 'error', message: 'Could not load Razorpay checkout. Please retry.' });
             setProcessing(false);
             return;
         }
 
         try {
-            const orderResponse = await axios.post('/api/orders/create', {
-                product_id: product.slug,
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
+            const createOrderResponse = await axios.post('/create-order', {
+                product_id: product.id,
+                user_name: data.user_name,
+                user_email: data.user_email,
+                user_phone: data.user_phone,
             });
-
-            setAlert(null);
 
             const options = {
                 key: razorpayKey,
-                amount: orderResponse.data.amount,
-                currency: orderResponse.data.currency,
+                order_id: createOrderResponse.data.order_id,
+                amount: createOrderResponse.data.amount,
+                currency: createOrderResponse.data.currency,
                 name: 'Hidden Wisdom',
                 description: product.title,
-                order_id: orderResponse.data.order_id,
-                handler: async function (response) {
-                    setAlert({ type: 'info', message: 'Verifying payment... Please wait.' });
+                prefill: {
+                    name: data.user_name,
+                    email: data.user_email,
+                    contact: data.user_phone,
+                },
+                notes: {
+                    product_id: product.id,
+                },
+                theme: {
+                    color: '#5b3a29',
+                },
+                modal: {
+                    ondismiss: () => {
+                        setAlert({ type: 'warning', message: 'Payment cancelled. Your order is still pending.' });
+                        setProcessing(false);
+                    },
+                },
+                handler: async (response) => {
+                    setAlert({ type: 'info', message: 'Verifying payment signature...' });
+
                     try {
-                        const verifyResponse = await axios.post('/api/orders/verify', {
+                        const verifyResponse = await axios.post('/verify-payment', {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
                         });
 
-                        if (verifyResponse.data.success) {
-                            setAlert({ type: 'success', message: '✓ Payment successful! Your ebook has been sent to ' + data.email + '. Please check your inbox.' });
-                            setTimeout(() => window.location.href = '/', 3000);
-                        } else {
-                            setAlert({ type: 'error', message: 'Payment verification failed. Please contact support with your payment ID.' });
+                        if (verifyResponse.data.success && verifyResponse.data.success_url) {
+                            window.location.assign(verifyResponse.data.success_url);
+                            return;
                         }
-                    } catch (error) {
-                        setAlert({ type: 'error', message: 'Payment verification failed. Your payment may have been processed. Please contact support.' });
-                    }
-                    setProcessing(false);
-                },
-                prefill: {
-                    name: data.name,
-                    email: data.email,
-                    contact: data.phone,
-                },
-                theme: {
-                    color: '#5B3A29',
-                },
-                modal: {
-                    ondismiss: function() {
-                        setAlert({ type: 'warning', message: 'Payment cancelled. You can try again when ready.' });
+
+                        setAlert({ type: 'error', message: verifyResponse.data.message || 'Payment verification failed.' });
+                    } catch (verifyError) {
+                        const message = verifyError?.response?.data?.message || 'Payment could not be verified. Contact support with your payment ID.';
+                        setAlert({ type: 'error', message });
+                    } finally {
                         setProcessing(false);
                     }
-                }
+                },
             };
 
-            const razorpay = new window.Razorpay(options);
-            razorpay.on('payment.failed', function (response) {
-                setAlert({ type: 'error', message: 'Payment failed: ' + response.error.description + '. Please try again.' });
+            const checkout = new window.Razorpay(options);
+
+            checkout.on('payment.failed', (response) => {
+                const description = response?.error?.description || 'Payment failed. Please try again.';
+                setAlert({ type: 'error', message: description });
                 setProcessing(false);
             });
-            razorpay.open();
-        } catch (error) {
-            setAlert({ type: 'error', message: 'Failed to create order. Please try again or contact support if the issue persists.' });
+
+            checkout.open();
+            setAlert(null);
+        } catch (createOrderError) {
+            const message = createOrderError?.response?.data?.message || 'Unable to create order at the moment.';
+            setAlert({ type: 'error', message });
             setProcessing(false);
         }
     };
@@ -117,121 +139,102 @@ export default function Product({ product, razorpayKey }) {
         <SpiritualLayout>
             <Head title={product.title} />
 
-            <div className="max-w-6xl mx-auto px-4 py-16">
+            <div className="mx-auto max-w-6xl px-4 py-14">
                 {alert && (
                     <div className="mb-6">
                         <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
                     </div>
                 )}
 
-                <div className="grid md:grid-cols-2 gap-12">
-                    {/* Product Image */}
-                    <div className="relative">
-                        <div className="absolute -inset-4 bg-[#C6A75E]/10 rounded-lg"></div>
-                        <div className="relative bg-white p-8 rounded-lg shadow-xl">
-                            {product.cover_image ? (
-                                <div className="aspect-[3/4] rounded overflow-hidden">
-                                    <img 
-                                        src={`/storage/${product.cover_image}`} 
-                                        alt={product.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="aspect-[3/4] bg-gradient-to-br from-[#5B3A29] to-[#C6A75E] rounded flex items-center justify-center">
-                                    <span className="text-[#F5EBDD] font-['Cinzel'] text-3xl text-center px-8">
-                                        {product.title}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Product Details */}
-                    <div>
-                        <h1 className="font-['Cinzel'] text-4xl text-[#5B3A29] mb-6">
-                            {product.title}
-                        </h1>
-                        
-                        <div className="w-16 h-1 bg-[#C6A75E] mb-8"></div>
-                        
-                        <p className="font-['Lora'] text-lg text-[#5B3A29]/80 mb-8 leading-relaxed">
-                            {product.description}
-                        </p>
-
-                        {product.preview_content && (
-                            <div className="bg-white/50 p-6 rounded-lg mb-8 border-l-4 border-[#C6A75E]">
-                                <h3 className="font-['Cinzel'] text-xl text-[#5B3A29] mb-3">
-                                    Preview
-                                </h3>
-                                <p className="font-['Lora'] text-[#5B3A29]/70 italic">
-                                    {product.preview_content}
-                                </p>
+                <div className="grid gap-12 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-[#d8be86] bg-white p-5 shadow-sm">
+                        {product.preview_image_url ? (
+                            <img src={product.preview_image_url} alt={product.title} className="aspect-[3/4] w-full rounded-xl object-cover" />
+                        ) : (
+                            <div className="flex aspect-[3/4] items-center justify-center rounded-xl bg-gradient-to-br from-[#5b3a29] to-[#c6a75e] p-8 text-center font-['Cinzel'] text-3xl text-[#f5ebdd]">
+                                {product.title}
                             </div>
                         )}
+                    </div>
 
-                        <div className="bg-white p-8 rounded-lg shadow-lg mb-8">
-                            <div className="flex items-baseline gap-4 mb-6">
-                                <span className="font-['Cinzel'] text-5xl text-[#C6A75E]">
-                                    {product.formatted_price}
-                                </span>
-                                <span className="text-[#5B3A29]/60 font-['Lora']">
-                                    One-time payment
-                                </span>
+                    <div>
+                        <p className="font-['Lora'] text-sm uppercase tracking-[0.2em] text-[#7d5435]">Digital Ebook</p>
+                        <h1 className="mt-2 font-['Cinzel'] text-4xl leading-tight text-[#4f2f1f]">{product.title}</h1>
+                        <p className="mt-6 font-['Lora'] text-lg leading-relaxed text-[#6b4530]">{product.description}</p>
+
+                        {product.preview_content && (
+                            <blockquote className="mt-6 rounded-xl border-l-4 border-[#c6a75e] bg-white/60 p-4 font-['Lora'] italic text-[#6b4530]">
+                                {product.preview_content}
+                            </blockquote>
+                        )}
+
+                        <div className="mt-8 rounded-2xl border border-[#d8be86] bg-[#fffaf1] p-6">
+                            <div className="mb-5 flex flex-wrap items-end gap-3">
+                                {isDiscounted && (
+                                    <span className="font-['Lora'] text-xl text-[#7d5435] line-through">
+                                        {product.formatted_original_price}
+                                    </span>
+                                )}
+                                <span className="font-['Cinzel'] text-5xl text-[#b27e2e]">{product.formatted_price}</span>
+                                {isDiscounted && (
+                                    <span className="rounded-full bg-[#5b3a29] px-3 py-1 font-['Lora'] text-sm text-[#f5ebdd]">
+                                        Save {product.discount_percentage}%
+                                    </span>
+                                )}
                             </div>
 
-                            <form onSubmit={handlePurchase} className="space-y-4">
+                            <form className="space-y-4" onSubmit={handlePurchase}>
                                 <div>
-                                    <label className="block font-['Lora'] text-[#5B3A29] mb-2">
-                                        Name *
-                                    </label>
+                                    <label className="mb-2 block font-['Lora'] text-[#4f2f1f]">Name (optional)</label>
                                     <input
                                         type="text"
-                                        value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-[#C6A75E]/30 rounded focus:border-[#C6A75E] focus:outline-none bg-[#F5EBDD]"
-                                        required
+                                        value={data.user_name}
+                                        onChange={(event) => setData('user_name', event.target.value)}
+                                        className="w-full rounded-md border border-[#d8be86] bg-white px-4 py-3 focus:border-[#b27e2e] focus:outline-none"
                                     />
+                                    {errors.user_name && <p className="mt-1 text-sm text-red-700">{errors.user_name}</p>}
                                 </div>
 
                                 <div>
-                                    <label className="block font-['Lora'] text-[#5B3A29] mb-2">
-                                        Email *
-                                    </label>
+                                    <label className="mb-2 block font-['Lora'] text-[#4f2f1f]">Email *</label>
                                     <input
                                         type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-[#C6A75E]/30 rounded focus:border-[#C6A75E] focus:outline-none bg-[#F5EBDD]"
                                         required
+                                        value={data.user_email}
+                                        onChange={(event) => setData('user_email', event.target.value)}
+                                        className="w-full rounded-md border border-[#d8be86] bg-white px-4 py-3 focus:border-[#b27e2e] focus:outline-none"
                                     />
+                                    {errors.user_email && <p className="mt-1 text-sm text-red-700">{errors.user_email}</p>}
                                 </div>
 
                                 <div>
-                                    <label className="block font-['Lora'] text-[#5B3A29] mb-2">
-                                        Phone (Optional)
-                                    </label>
+                                    <label className="mb-2 block font-['Lora'] text-[#4f2f1f]">Phone (optional)</label>
                                     <input
                                         type="tel"
-                                        value={data.phone}
-                                        onChange={(e) => setData('phone', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-[#C6A75E]/30 rounded focus:border-[#C6A75E] focus:outline-none bg-[#F5EBDD]"
+                                        value={data.user_phone}
+                                        onChange={(event) => setData('user_phone', event.target.value)}
+                                        className="w-full rounded-md border border-[#d8be86] bg-white px-4 py-3 focus:border-[#b27e2e] focus:outline-none"
                                     />
+                                    {errors.user_phone && <p className="mt-1 text-sm text-red-700">{errors.user_phone}</p>}
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="w-full bg-[#5B3A29] text-[#F5EBDD] px-8 py-4 rounded font-['Lora'] text-lg hover:bg-[#C6A75E] hover:text-[#5B3A29] transition-all duration-300 border-2 border-[#5B3A29] hover:border-[#C6A75E] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full rounded-md border-2 border-[#5b3a29] bg-[#5b3a29] px-8 py-4 font-['Lora'] text-lg text-[#f5ebdd] transition hover:border-[#c6a75e] hover:bg-[#c6a75e] hover:text-[#4f2f1f] disabled:cursor-not-allowed disabled:opacity-70"
                                 >
-                                    {processing ? 'Processing...' : 'Purchase Now'}
+                                    {processing ? 'Processing...' : 'Buy Now - Get Instant Access'}
                                 </button>
                             </form>
 
-                            <p className="text-sm text-[#5B3A29]/60 mt-4 text-center font-['Lora']">
-                                🔒 Secure payment via Razorpay • Instant PDF delivery
+                            <p className="mt-4 text-center font-['Lora'] text-sm text-[#6b4530]">
+                                Secure payment with Razorpay. PDF delivered instantly after signature verification.
                             </p>
                         </div>
+
+                        <Link href="/" className="mt-6 inline-block font-['Lora'] text-[#5b3a29] underline decoration-[#c6a75e] underline-offset-4">
+                            Back to landing page
+                        </Link>
                     </div>
                 </div>
             </div>

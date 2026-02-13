@@ -6,18 +6,17 @@ export default function Products({ products, categories, selectedCategory }) {
         <SpiritualLayout>
             <Head title="Spiritual Ebooks & Digital Products" />
 
-            <div className="max-w-7xl mx-auto px-4 py-16">
+            <div className="mx-auto max-w-7xl px-4 py-16">
                 <div className="text-center mb-12">
                     <h1 className="font-['Cinzel'] text-5xl text-[#5B3A29] mb-4">
                         Sacred Wisdom Collection
                     </h1>
                     <div className="w-20 h-1 bg-[#C6A75E] mx-auto mb-6"></div>
                     <p className="font-['Lora'] text-lg text-[#5B3A29]/70">
-                        Explore our collection of spiritual teachings and dharma wisdom
+                        Explore practical digital books rooted in dharma and inner clarity.
                     </p>
                 </div>
 
-                {/* Categories Filter */}
                 {categories.length > 0 && (
                     <div className="flex justify-center gap-4 mb-12 flex-wrap">
                         <Link
@@ -35,7 +34,7 @@ export default function Products({ products, categories, selectedCategory }) {
                                 key={category.id}
                                 href={`/products?category=${category.id}`}
                                 className={`px-6 py-2 rounded-full font-['Lora'] transition-colors ${
-                                    selectedCategory == category.id
+                                    selectedCategory === category.id
                                         ? 'bg-[#5B3A29] text-[#F5EBDD]'
                                         : 'bg-white text-[#5B3A29] hover:bg-[#C6A75E] hover:text-white'
                                 }`}
@@ -46,7 +45,6 @@ export default function Products({ products, categories, selectedCategory }) {
                     </div>
                 )}
 
-                {/* Products Grid */}
                 <div className="grid md:grid-cols-3 gap-8">
                     {products.data.map((product) => (
                         <Link
@@ -54,10 +52,10 @@ export default function Products({ products, categories, selectedCategory }) {
                             href={`/product/${product.slug}`}
                             className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow group"
                         >
-                            {product.cover_image ? (
+                            {product.preview_image_url ? (
                                 <div className="aspect-[3/4] overflow-hidden">
-                                    <img 
-                                        src={`/storage/${product.cover_image}`} 
+                                    <img
+                                        src={product.preview_image_url}
                                         alt={product.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     />
@@ -76,10 +74,13 @@ export default function Products({ products, categories, selectedCategory }) {
                                 <p className="font-['Lora'] text-[#5B3A29]/70 text-sm mb-4 line-clamp-3">
                                     {product.description}
                                 </p>
-                                <div className="flex justify-between items-center">
-                                    <span className="font-['Cinzel'] text-2xl text-[#C6A75E]">
-                                        {product.formatted_price}
-                                    </span>
+                                <div className="flex justify-between items-end gap-3">
+                                    <div>
+                                        {product.has_discount && (
+                                            <div className="text-sm text-[#5B3A29]/60 line-through">{product.formatted_original_price}</div>
+                                        )}
+                                        <div className="font-['Cinzel'] text-2xl text-[#C6A75E]">{product.formatted_price}</div>
+                                    </div>
                                     <span className="text-[#5B3A29] group-hover:text-[#C6A75E] transition-colors">
                                         View Details →
                                     </span>
@@ -89,7 +90,6 @@ export default function Products({ products, categories, selectedCategory }) {
                     ))}
                 </div>
 
-                {/* Pagination */}
                 {products.links.length > 3 && (
                     <div className="mt-12 flex justify-center gap-2">
                         {products.links.map((link, index) => (

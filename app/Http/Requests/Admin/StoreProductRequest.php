@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
@@ -17,11 +18,13 @@ class StoreProductRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'preview_content' => ['nullable', 'string'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'currency' => ['required', 'string', 'max:3'],
+            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')],
+            'price' => ['required', 'numeric', 'min:1'],
+            'discount_price' => ['nullable', 'numeric', 'min:1', 'lt:price'],
+            'currency' => ['required', 'string', 'size:3'],
             'pdf' => ['required', 'file', 'mimes:pdf', 'max:51200'],
-            'cover_image' => ['nullable', 'image', 'max:5120'],
-            'is_active' => ['boolean'],
+            'preview_image' => ['nullable', 'image', 'max:5120'],
+            'status' => ['required', Rule::in(['active', 'inactive'])],
         ];
     }
 }

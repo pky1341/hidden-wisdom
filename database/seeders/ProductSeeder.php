@@ -12,13 +12,14 @@ class ProductSeeder extends Seeder
         Product::create([
             'title' => 'The Path of Dharma: Ancient Wisdom for Modern Living',
             'slug' => 'path-of-dharma',
-            'description' => 'Discover the timeless principles of Dharma that have guided spiritual seekers for thousands of years. This comprehensive ebook explores the fundamental teachings of righteous living, karma, and the path to liberation. Learn how to apply these ancient principles in your modern life to find peace, purpose, and spiritual fulfillment.',
-            'preview_content' => '"When you live in alignment with Dharma, every action becomes a prayer, every moment becomes sacred, and every challenge becomes an opportunity for growth. This is not merely philosophy—it is the art of living with wisdom and grace."',
-            'price' => 99.00,
+            'description' => 'Discover timeless principles of dharma to improve emotional clarity, decision making, and spiritual discipline in modern life.',
+            'preview_content' => '"When life feels heavy, dharma gives direction. When mind feels noisy, dharma gives stillness."',
+            'price' => 999,
+            'discount_price' => 199,
             'currency' => 'INR',
-            'pdf_path' => 'products/path-of-dharma.pdf',
-            'cover_image' => null,
-            'is_active' => true,
+            'file_path' => 'products/path-of-dharma.pdf',
+            'preview_image' => null,
+            'status' => 'active',
         ]);
     }
 }

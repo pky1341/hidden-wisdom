@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\ProductDeliveryMail;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -9,7 +10,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\ProductDeliveryMail;
 
 class SendProductEmail implements ShouldQueue
 {
@@ -21,7 +21,13 @@ class SendProductEmail implements ShouldQueue
 
     public function handle(): void
     {
-        Mail::to($this->order->customer_email)
+        $this->order->loadMissing(['product', 'download']);
+
+        if (! $this->order->download) {
+            return;
+        }
+
+        Mail::to($this->order->user_email)
             ->send(new ProductDeliveryMail($this->order));
     }
 }

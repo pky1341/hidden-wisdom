@@ -3,21 +3,31 @@
 namespace App\Http\Controllers;
 
 use App\Models\Download;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class DownloadController extends Controller
 {
     public function download(string $token)
     {
-        $download = Download::where('token', $token)->firstOrFail();
+        $download = Download::with(['order.product'])
+            ->whereToken($token)
+            ->firstOrFail();
 
         if ($download->isExpired()) {
-            abort(410, 'Download link has expired');
+            abort(410, 'Download link has expired.');
         }
 
-        if ($download->isDownloaded()) {
-            abort(403, 'This download link has already been used');
+        $order = $download->order;
+
+        if (! $order->isPaid()) {
+            abort(403, 'Payment is not verified for this download link.');
+        }
+
+        $product = $order->product;
+
+        if (! $product?->file_path || ! Storage::disk('private')->exists($product->file_path)) {
+            abort(404, 'File is not available anymore.');
         }
 
         $download->update([
@@ -25,12 +35,8 @@ class DownloadController extends Controller
             'ip_address' => request()->ip(),
         ]);
 
-        $order = $download->order;
-        $product = $order->product;
+        $filename = Str::slug($product->title) . '.pdf';
 
-        return Storage::disk('private')->download(
-            $product->pdf_path,
-            $product->title . '.pdf'
-        );
+        return Storage::disk('private')->download($product->file_path, $filename);
     }
 }
